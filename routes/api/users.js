@@ -4,6 +4,8 @@ const { check, validationResult } = require("express-validator");
 const gravatar = require("gravatar");
 const User = require("../../models/Users");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const config = require("config")
 //@route POST api/users
 //@desc Test route
 //@access Public
@@ -14,7 +16,7 @@ router.post(
     check("email", "Please include a valid email").isEmail(),
     check(
       "password",
-      "Plese enter a password with 6 or more characters"
+      "Please enter a password with 6 or more characters"
     ).isLength({ min: 6 }),
   ],
   async (req, res) => {
@@ -51,12 +53,24 @@ router.post(
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(password, salt);
       await user.save();
+
       //return jsonwebtoken
+      const payload = {
+        user: {
+          id: user.id,
+        }
+      }
+      jwt.sign(payload, config.get('jwtSecret'),
+        { expiresIn: 3600 },
+        (err, token) => { 
+          if (err) throw err;
+          res.json({ token });
+        }
+      );
       // console.log(req.body);
-      res.send("User registered");
     } catch (error) {
       console.error(error.message);
-      res.status(500).send("Server erorr");
+      res.status(500).send("Server error");
     }
   }
 );
